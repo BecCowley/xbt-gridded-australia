@@ -1,0 +1,6 @@
+﻿variable_name,Dimensions,is_cf_compliant (1=yes 0=no)),variable_type,fillValue,att_coordinates,att_standard_name,att_long_name,att_calendar,att_units,att_axis,att_valid_min,att_valid_max,att_reference_datum,att_positive
+TIME,,1,float64,,,time,time,gregorian,days since 1950-01-01 00:00:00 UTC,T,0,90000,,
+LATITUDE,TIME,1,float64,999999,,latitude,latitude,,degrees_north,Y,-90,90,"geographical coordinates, WGS84 projection",
+LONGITUDE,TIME,1,float64,999999,,longitude,longitude,,degrees_east,X,-180,180,"geographical coordinates, WGS84 projection",
+DEPTH,DEPTH,1,float32,,,depth,depth,,m,Z,-5,12000,sea surface,down
+TEMP,"TIME,DEPTH",1,float32,999999,TIME LATITUDE LONGITUDE DEPTH,sea_water_temperature,sea_water_temperature,,Celsius,,-2.5,40,,

@@ -1,6 +1,12 @@
 ### Code under development for gridding XBT data and creating output files of the products
 
 
+### Data sources and reference information
+This repository is associated with the following data source:
+- Cowley, Rebecca; Krummel, Lisa; McMahon, Aidan; Hanstein, Craig; Parker, Ashley; Sloyan, Bernadette; Chapman, Chris; & Ridgway, Ken (2026): Australian XBT Ship of Opportunity gridded data collection. v1. CSIRO. Data Collection. https://data.csiro.au/collection/csiro:73479
+
+The article describing the data collection and gridding methods is in preparation. For more information about the data collection, please see the CSIRO Data Collection page linked above.
+
 ## Quick start (recommended)
 
 1. Create and activate a virtual environment (Python 3.11+ recommended):

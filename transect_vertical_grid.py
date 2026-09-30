@@ -940,7 +940,7 @@ def clean_and_grid_transect(input_directories, output_directory, file_entries=No
                             globals_file_path='netcdfGlobalAtts.csv', vars_file_path='netcdfVars.csv', source_url=source_url)
 
 
-# create main function to call clean_and_grid_transect with input and output arguments
+# main function to call clean_and_grid_transect with input and output arguments
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Clean, vertically grid, and write XBT transects to netCDF."

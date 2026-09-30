@@ -1,60 +1,67 @@
-function deps = get_gebco_bathy(fnm, lats,lons)
-% get the bathymetry from the gebco gridded bathy dataset
+function deps = get_gebco_bathy(bathy, lats, lons)
+% get bathymetry values from a preloaded GEBCO bathymetry slice
 % inputs:
-%   lats = latitudes of locations to retrieve
-%   lons = longitudes of locations to retrieve
-%   Gebco file path is hard coded in.
+%   bathy = struct containing:
+%       bathy.z   = bathymetry values
+%       bathy.lat = latitude vector for the slice
+%       bathy.lon = longitude vector for the slice
+%   lats  = latitudes of locations to retrieve
+%   lons  = longitudes of locations to retrieve
 % Bec Cowley, October, 2025
 
-% Find the indices of lat/lon range
-desired_lat_range = [min(lats) max(lats)]; 
-desired_lon_range = [min(lons) max(lons)];
-
-% pre-allocate deps
 deps = nan(size(lons));
-ii = 1:numel(lons);
-try
-    lat = ncread(fnm, 'latitude');
-    lon = ncread(fnm, 'longitude');
-catch
-    lat = ncread(fnm, 'lat');
-    lon = ncread(fnm, 'lon');
+
+if isempty(lats) || isempty(lons)
+    return
 end
-% while loop
-while ~isempty(ii)
-    jj = find(lons(ii)>=min(lon) & lons(ii)<=max(lon) & lats(ii)>=min(lat) & lats(ii)<=max(lat));
-    ji = ii(jj);
 
-    if ~isempty(ji)
-  	  % Broaden region slightly (by .1 degree) so extracted chunk encloses
-      % all points
-      ix = find(lon>=min(lons(ji))-.1 & lon<=max(lons(ji))+.1);
-      iy = find(lat>=min(lats(ji))-.1 & lat<=max(lats(ji))+.1);
-      % now interpolate to return the information along this line
-      lon(lon==0) = -.02;    % Enable interpolation to x=0
-      lon(lon==360) = 360.02;    % Enable interpolation to x=360
-      % read the heights
-      try
-        heights = ncread(fnm,'height',[ix(1) iy(1)],[ix(end)-ix(1)+1 iy(end)-iy(1)+1]);
-      catch
-        heights = double(ncread(fnm,'elevation',[ix(1) iy(1)],[ix(end)-ix(1)+1 iy(end)-iy(1)+1]));
-      end
-
-      [lon,lat] = meshgrid(lon(ix),lat(iy));
-      if length(ix)==1
-          % Degenerate case where only want points on boundary of dataset
-          deps(ji) = interp1(lat,heights,lats(ji));
-      elseif length(iy)==1
-          % Ditto
-          deps(ji) = interp1(lon,heights,lons(ji));
-      else
-          deps(ji) = interp2(lon,lat,heights',lons(ji),lats(ji));
-      end
-
-      % Remove from the list only points for which we have obtained data.
-      ll = find(~isnan(deps(ii(jj))));
-      ii(jj(ll)) = [];
-    else
-        ii = [];
+req = {'lat','lon','z'};
+for k = 1:numel(req)
+    if ~isfield(bathy, req{k})
+        error('Bathymetry slice struct must contain fields: lat, lon, z');
     end
+end
+
+out_sz = size(lons);
+latsq = double(lats(:));
+lonsq = double(lons(:));
+
+lat_sub = double(bathy.lat(:));
+lon_sub = double(bathy.lon(:));
+z = double(bathy.z);
+
+% Match longitude convention of provided slice
+lon_min = min(lon_sub);
+lon_max = max(lon_sub);
+lon_is_360 = lon_min >= 0 && lon_max > 180;
+
+if lon_is_360
+    lonsq(lonsq < 0) = lonsq(lonsq < 0) + 360;
+else
+    lonsq(lonsq > 180) = lonsq(lonsq > 180) - 360;
+end
+
+in = lonsq >= min(lon_sub) & lonsq <= max(lon_sub) & ...
+     latsq >= min(lat_sub) & latsq <= max(lat_sub);
+
+if ~any(in)
+    deps = reshape(deps, out_sz);
+    return
+end
+
+lon_sub(lon_sub == 0) = -0.02;
+lon_sub(lon_sub == 360) = 360.02;
+
+[lon_grid, lat_grid] = meshgrid(lon_sub, lat_sub);
+
+ji = find(in);
+if numel(lon_sub) == 1
+    deps(ji) = interp1(lat_sub(:), z(:), latsq(ji));
+elseif numel(lat_sub) == 1
+    deps(ji) = interp1(lon_sub(:), z(:), lonsq(ji));
+else
+    deps(ji) = interp2(lon_grid, lat_grid, z', lonsq(ji), latsq(ji));
+end
+
+deps = reshape(deps, out_sz);
 end

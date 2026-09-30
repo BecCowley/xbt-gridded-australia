@@ -1,6 +1,6 @@
-function xbt = grid_simple(xbt,transect)
+function xbt = grid_simple(xbt, bathy, settings)
 %
-% read XBT transect data from netcdf FV02 files. Each file contains one
+% read XBT transect data from netcdf vertically gridded files. Each file contains one
 % transect of data on common depth grid.
 %
 % Inputs:
@@ -11,61 +11,17 @@ function xbt = grid_simple(xbt,transect)
 % interpolation along the lat or lon grid.
 % Bec Cowley, Jan 2026
 
-% set up depending on transect
-if contains('PX06',transect)
-    orientation = 2; %North-south
-    lat_grid = -32.5:0.1:-20;
-    gaps = 2;
-    e1 = 40; % 40 stations for high resolution
-elseif contains('PX30',transect)
-    orientation = 1; %east-west
-    lon_grid = 153:0.1:178;
-    gaps = 2;
-    e1 = 40; % 40 stations for high resolution
-elseif contains('PX34',transect)
-    orientation = 1;
-    lon_grid = 151.2:0.1:173;
-    gaps = 2;
-    e1 = 40; % 40 stations for high resolution
-elseif contains('PX32',transect)
-    orientation = 1;
-    lon_grid = 151.2:0.1:172.4;
-    gaps = 2;
-    e1 = 40; % 40 stations for high resolution
-elseif contains('PX32_34',transect)
-    orientation = 1;
-    lon_grid = 151.2:0.1:173;
-    gaps = 2;
-    e1 = 40; % 40 stations for high resolution
-elseif contains('IX28', transect)
-    orientation = 2; %North-south
-    lat_grid = -66.5:0.1:-43.5;
-    gaps = 2;
-    e1 = 40; % 40 stations for high resolution
-elseif contains('IX01',transect)
-    orientation = 2; %North-south
-    lat_grid = -35:0.5:-5;
-    gaps = 6;
-    e1 = 20; % 40 stations for frequently repeated
-elseif contains('IX22-PX11',transect)
-    orientation = 2; %North-south
-    lat_grid = -20.9:0.5:29.26;
-    gaps = 4;
-    e1 = 20; % 40 stations for frequently repeated
-elseif contains('PX02',transect)
-    orientation = 1; %east-west
-    lon_grid = 114.7:0.5:135.2;
-    gaps = 4;
-    e1 = 20; % 40 stations for frequently repeated
-elseif contains('IX12',transect)
-    orientation = 1; %East-west
-    lon_grid = 50:0.5:116;
-    gaps = 4;
-    e1 = 20; % 40 stations for frequently repeated
-else
-    disp('transect argument is not coded in yet')
+if isempty(settings)
+    disp('Orientation and other settings not available for this transect')
+    xbt = [];
     return
+else
+    orientation = settings.orientation;
+    grid = settings.grid;
+    gaps = settings.gaps;
+    e1 = settings.e1;
 end
+
 % remove any profiles with less than 3 data points
 irem = find(sum(~isnan(xbt.TEMP),1) < 2);
 xbt.TEMP(:,irem) = [];
@@ -79,14 +35,9 @@ if any(xbt.LONGITUDE < 0)
     xbt.LONGITUDE(ineg) = xbt.LONGITUDE(ineg) + 360;
 end
 % get terrainbase bathymetry at the deploy lon/lat
-repo_root = fileparts(fileparts(mfilename('fullpath'))); % assumes matlab/ is inside repo root
-gebco_env = getenv('GEBCO_PATH');
-if ~isempty(gebco_env) && exist(gebco_env,'file')
-    gebco_file = gebco_env;
-else
-    error(['GEBCO file not found. Set GEBCO_PATH environment variable or place file in "data/bath/" under the repo root: ' repo_root]);
-end
-bath = make_unique(-get_gebco_bathy(gebco_file,xbt.LATITUDE,xbt.LONGITUDE));
+% hard code file name
+bath = make_unique(-get_gebco_bathy(bathy,xbt.LATITUDE,xbt.LONGITUDE));
+
 % sort data, remove shallow casts in deep water and make unique values
 [xbt, bath] = sort_xbtdat(xbt,bath,orientation);    % create the complete lat/lon grid
 
@@ -102,20 +53,22 @@ lons = xbt.LONGITUDE;
 if orientation == 2 % interpolate by latitude
     % cut down the lat_grid to be within the chunk range
     % ig = lat_grid < max(lats) & lat_grid > min(lats);
-    xbt.LAT_grid = lat_grid;
-    xbt.LON_grid = interp1(lats, lons, lat_grid, 'linear');
-    xbt.TEMP_interp = NaN*ones(length(xbt.DEPTH), length(lat_grid));
-    xbt.bath = NaN*lat_grid;
-    xtrans = lat_grid;
+    xbt.LAT_grid = grid;
+    xbt.LON_grid = interp1(lats, lons, grid, 'linear');
+    xbt.TIME_grid = datetime(interp1(lats, datenum(xbt.TIME), grid, 'linear'), 'ConvertFrom', 'datenum');
+    xbt.TEMP_interp = NaN*ones(length(xbt.DEPTH), length(grid));
+    xbt.bath = NaN*grid;
+    xtrans = grid;
     ll = lats;
 else % interpolate by longitude
     % cut down the lat_grid to be within the chunk range
     % ig = lon_grid < max(lons) & lon_grid > min(lons);
-    xbt.LON_grid = lon_grid;
-    xbt.LAT_grid = interp1(lons, lats, lon_grid, 'linear');
-    xbt.TEMP_interp = NaN*ones(length(xbt.DEPTH),length(lon_grid));
-    xbt.bath = NaN*lon_grid;
-    xtrans = lon_grid;
+    xbt.LON_grid = grid;
+    xbt.LAT_grid = interp1(lons, lats, grid, 'linear');
+    xbt.TEMP_interp = NaN*ones(length(xbt.DEPTH),length(grid));
+    xbt.TIME_grid = datetime(interp1(lons, datenum(xbt.TIME), grid, 'linear'), 'ConvertFrom', 'datenum');
+    xbt.bath = NaN*grid;
+    xtrans = grid;
     ll = lons;
 end
 % make a matrix of xbt.DEPTH to match the xbt.TEMP matrix with NaN in

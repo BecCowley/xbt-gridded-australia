@@ -1,4 +1,4 @@
-function [temp,latitudes,longitudes,ti,num_profiles,transect_id] = check_transect_location(temp, latitudes,longitudes,ti,num_profiles,transect_id, transect)
+function [temp,latitudes,longitudes,times,num_profiles,ti,transect_id] = check_transect_location(temp, latitudes,longitudes,times,num_profiles,ti,transect_id, transect, settings)
 % Check the lats and lons arrays are within a defined polygon boundary.
 % Remove the entire transect from the data if it does not meet the percent
 % criteria
@@ -9,42 +9,13 @@ function [temp,latitudes,longitudes,ti,num_profiles,transect_id] = check_transec
 % Rebecca Cowley, Jan 2026
 
 
-if contains('PX06', transect)
-    % PX06
-    xp = [174.7 174.7 195 195];
-    yp = [-16 -39 -39 -16];
-elseif contains('PX30',transect)
-    % PX30
-    xp = [153 153 178.7 178.7];
-    yp = [-27 -24.8 -15.7 -21.7 ];
-elseif contains('PX34',transect)
-    % PX34
-    xp = [151.3 151.3 174 174];
-    yp = [-35 -33.8 -38.8 -41.2];
-elseif contains('PX32',transect)
-    % TODO: PX32 - need to refine this or combine with PX34
-    xp = [150.8 150.8 173 173];
-    yp = [-35 -31.5 -31.5 -35];
-elseif contains('IX28', transect)
-    xp = [135.0 140.5 150.2 149];
-    yp = [-66.5 -40 -40 -66.5];   
-elseif contains('IX01', transect)
-    xp = [112.0 102 108.5 116];
-    yp = [-35 -5 -5 -27];  
-elseif contains('IX22-PX11', transect)
-    xp = [116.0 123.4 124 124.6 135.83 129.5 127.7 120.35];
-    yp = [-19.7 -7 -3 20.5 20.5 -3 -7 -19.7];  
-elseif contains('PX02',transect)
-    % PX02
-    xp = [114.5 114.5 135 135];
-    yp = [-8 -5 -8.5 -10.75 ];
-elseif contains('IX12',transect)
-    % IX12
-    xp = [112 112 116 116];
-    yp = [7 18 -30.5 -35.5];
-else
-    disp('transect argument must be one of ''PX30'',''PX34'',''PX06'',''PX32'',''IX01''')
+if isempty(settings)
+    disp(['Polygon is not set up for transect ' transect_id ', using all data'])
+    % use all the data
     return
+else
+    xp = settings.xp;
+    yp = settings.yp;
 end
 
 % check the lats and longs for each transect to and keep those in the
@@ -61,9 +32,10 @@ end
 temp(:,:,irem) = [];
 latitudes(:,irem) = [];
 longitudes(:,irem) = [];
-ti(irem) = [];
+times(:,irem) = [];
 num_profiles(irem) = [];
 transect_id(irem)=[];
+ti(irem) = [];
 
 end
 

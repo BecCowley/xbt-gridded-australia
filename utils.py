@@ -33,28 +33,11 @@ def read_variables_config(file_path):
     """
     read the variable attributes from the xbt_config file
     """
-    p = Path(file_path)
-    if not p.is_absolute():
-        p = Path(os.path.dirname(__file__)) / p
-    p = p.resolve()
-
     # Read the CSV file and convert it to a DataFrame
-    df = pd.read_csv(str(p))
+    df = pd.read_csv(os.path.join(os.path.dirname(__file__), file_path))
     # fill any empty cells and strings with NaN
     df = df.fillna(value=pd.NA)
     df = df.replace(r'^\s*$', pd.NA, regex=True)
 
     return df
 
-def make_transect_id(soop_line, date_like, existing_ids):
-    """
-    Return a unique transect id like: soop_line-YYYYMM-I
-    where I starts at 1 and increments until the id is not in existing_ids.
-    """
-    yyyymm = pd.to_datetime(date_like).strftime('%Y%m')
-    i = 1
-    while True:
-        candidate = f"{soop_line}-{yyyymm}-{i}"
-        if candidate not in existing_ids:
-            return candidate
-        i += 1
